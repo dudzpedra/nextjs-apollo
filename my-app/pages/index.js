@@ -4,7 +4,7 @@ import styles from "../styles/Home.module.css";
 
 import { ApolloClient, InMemoryCache, gql } from "@apollo/client";
 
-export default function Home({ launches, miniverso }) {
+export default function Home({ launches, miniverso, products }) {
   return (
     <div className={styles.container}>
       <Head>
@@ -14,11 +14,32 @@ export default function Home({ launches, miniverso }) {
       </Head>
 
       <main className={styles.main}>
+
+        <h1 className={styles.title}>Miniverso</h1>
+        <p>Lista de Produtos</p>
+        
+        <h2>Loja: {miniverso.default_title}</h2>
+        <h2>Visite: {miniverso.base_link_url}</h2>
+
+        <div className={styles.grid}>
+          {products.map((product) => {
+            return (
+              <a 
+                target="_blank"
+                rel="noreferrer"
+                href="#!" 
+                className={styles.card} 
+                key={product.id}
+              >
+                <h3>{product.name}</h3>
+                <p>{product.price_range.minimum_price.regular_price.currency} - <span>{product.price_range.minimum_price.regular_price.value}</span></p>
+              </a>
+            )
+          })}
+        </div>
+
         <h1 className={styles.title}>Space-X Launches</h1>
         <p>Latest launches from SpaceX</p>
-
-        <h2>{miniverso.default_title}</h2>
-        <h2>{miniverso.base_link_url}</h2>
 
         <div className={styles.grid}>
           {launches.map((launch) => {
@@ -79,11 +100,30 @@ export async function getStaticProps() {
     }
   `;
 
-  const storeInfo  = await client2.query({
-    query: READ_STORE,
-  });
+  const GET_PRODUCTS = gql`
+    query GetProducts {
+      products (filter: {category_id: {eq: "2"}}) {
+        items {
+          id
+          name
+          sku
+          price_range {
+            minimum_price {
+              regular_price {
+                value
+                currency
+              }
+            }
+          }
 
-  console.log(storeInfo.data.storeConfig)
+        }
+      }
+    }
+  `;
+
+  const productsData = await client2.query({query: GET_PRODUCTS})
+
+  const storeInfo  = await client2.query({query: READ_STORE});
 
   const { data } = await client.query({
     query: gql`
@@ -111,7 +151,8 @@ export async function getStaticProps() {
   return {
     props: {
       launches: data.launchesPast,
-      miniverso: storeInfo.data.storeConfig
+      miniverso: storeInfo.data.storeConfig,
+      products: productsData.data.products.items
     },
   };
 }
